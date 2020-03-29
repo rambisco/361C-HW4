@@ -1,0 +1,35 @@
+==26628== NVPROF is profiling process 26628, command: ./q1.out
+array[0]: 904, result[0]: 4
+array[1]: 366, result[1]: 6
+array[2]: 776, result[2]: 6
+array[3]: 455, result[3]: 5
+array[4]: 800, result[4]: 0
+array[5]: 844, result[5]: 4
+array[6]: 149, result[6]: 9
+array[7]: 266, result[7]: 6
+array[8]: 121, result[8]: 1
+array[9]: 716, result[9]: 6
+min: 100
+==26628== Profiling application: ./q1.out
+==26628== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   56.51%  5.7632ms         1  5.7632ms  5.7632ms  5.7632ms  lastDigit(int*, int*, int)
+                   43.49%  4.4362ms         1  4.4362ms  4.4362ms  4.4362ms  min(int*, int)
+      API calls:   95.16%  349.16ms         2  174.58ms  60.265us  349.10ms  cudaMallocManaged
+                    2.78%  10.187ms         2  5.0935ms  4.4278ms  5.7592ms  cudaDeviceSynchronize
+                    0.92%  3.3807ms       384  8.8040us     132ns  398.89us  cuDeviceGetAttribute
+                    0.57%  2.0777ms         4  519.42us  464.64us  556.76us  cuDeviceTotalMem
+                    0.28%  1.0433ms         1  1.0433ms  1.0433ms  1.0433ms  cudaFree
+                    0.22%  796.18us         2  398.09us  35.895us  760.28us  cudaLaunchKernel
+                    0.07%  243.95us         4  60.988us  53.622us  69.271us  cuDeviceGetName
+                    0.00%  7.3080us         4  1.8270us     753ns  3.4920us  cuDeviceGetPCIBusId
+                    0.00%  5.1030us         8     637ns     174ns  3.4940us  cuDeviceGet
+                    0.00%  1.1860us         3     395ns     225ns     518ns  cuDeviceGetCount
+
+==26628== Unified Memory profiling result:
+Device "GeForce GTX 1080 Ti (0)"
+   Count  Avg Size  Min Size  Max Size  Total Size  Total Time  Name
+      26  152.77KB  4.0000KB  0.9961MB  3.878906MB  367.4560us  Host To Device
+       6  32.000KB  4.0000KB  60.000KB  192.0000KB  19.58400us  Device To Host
+      25         -         -         -           -  2.733664ms  Gpu page fault groups
+Total CPU Page faults: 15
