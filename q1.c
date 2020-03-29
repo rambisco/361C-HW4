@@ -9,6 +9,7 @@ void* fileToArray(char file1[], int* n){
   char* str = malloc(sizeof(char)*2048);
   int token;
   fscanf(fptr, "%d,", n);
+  int* array;
   //int* array = malloc(sizeof(int)*(*n));
   cudaMallocManaged(&array, sizeof(int)*(*n)); 
   for(int i = 0; i < *n; i++){
