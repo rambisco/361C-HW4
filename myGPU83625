@@ -1,0 +1,33 @@
+==17270== NVPROF is profiling process 17270, command: ./q2a.out
+result[0]: 99925
+result[1]: 100023
+result[2]: 99948
+result[3]: 100464
+result[4]: 99695
+result[5]: 99790
+result[6]: 100175
+result[7]: 100309
+result[8]: 99748
+result[9]: 99923
+==17270== Profiling application: ./q2a.out
+==17270== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:  100.00%  4.6149ms         1  4.6149ms  4.6149ms  4.6149ms  bucket(int*, int*, int)
+      API calls:   96.26%  318.87ms         2  159.44ms  38.012us  318.83ms  cudaMallocManaged
+                    1.39%  4.6166ms         1  4.6166ms  4.6166ms  4.6166ms  cudaDeviceSynchronize
+                    1.04%  3.4582ms       384  9.0050us     133ns  407.73us  cuDeviceGetAttribute
+                    0.64%  2.1295ms         4  532.36us  490.92us  577.87us  cuDeviceTotalMem
+                    0.33%  1.0787ms         1  1.0787ms  1.0787ms  1.0787ms  cudaLaunchKernel
+                    0.23%  769.92us         1  769.92us  769.92us  769.92us  cudaFree
+                    0.09%  308.86us         4  77.215us  55.378us  111.18us  cuDeviceGetName
+                    0.01%  23.772us         4  5.9430us     809ns  19.932us  cuDeviceGetPCIBusId
+                    0.00%  5.0260us         8     628ns     173ns  3.2780us  cuDeviceGet
+                    0.00%  1.2730us         3     424ns     139ns     733ns  cuDeviceGetCount
+
+==17270== Unified Memory profiling result:
+Device "GeForce GTX 1080 Ti (0)"
+   Count  Avg Size  Min Size  Max Size  Total Size  Total Time  Name
+      26  152.77KB  4.0000KB  0.9961MB  3.878906MB  363.3920us  Host To Device
+       2  32.000KB  4.0000KB  60.000KB  64.00000KB  6.368000us  Device To Host
+      13         -         -         -           -  1.520288ms  Gpu page fault groups
+Total CPU Page faults: 14
