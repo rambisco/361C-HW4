@@ -47,7 +47,7 @@ void computeBucket(int* array, int n) {
     result[i] = 0;
   }
 
-  lastDigit<<<NUM_BLOCKS_B, NUM_THREADS_B>>>(array, result, n);
+  bucket<<<NUM_BLOCKS_B, NUM_THREADS_B>>>(array, result, n);
 
   cudaDeviceSynchronize();
   for (int i = 0; i < 10; i++) {
@@ -61,8 +61,8 @@ int main(int argc, char* argv[]){
   /*for(int i = 0; i < 10; i++){
     printf("%d\n", array[i]);
   }*/
-  computeLastDigit(array, n);
-  int min = computeMin(array, n);
-  printf("min: %d\n", min);
+  computeBucket(array, n);
+  //int min = computeMin(array, n);
+  //printf("min: %d\n", min);
   cudaFree(array);
 }
