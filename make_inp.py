@@ -2,13 +2,14 @@ import random
 random.seed(a = None, version=2)
 f = open("inp.txt", "w+")
 f.write("1000000,")
-min_num = 1000
+x = [0] * 10;
 for i in range(1000000):
-	k = random.randint(100, 999)
-	if k < min_num:
-		min_num = k
+	k = random.randint(0, 999)
+	x[int(k/100)] += 1
 	f.write(str(k))
 	f.write(",")
-print(min_num)
 f.write("900")
+x[9] += 1
 
+for i in range(10):
+	print("x[i]: " + str(x[i]))
