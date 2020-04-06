@@ -33,8 +33,7 @@ void bucket(int* array, int* result, int n) {
   for (int i = index; i < n; i += stride) {
 
     int numHundreds = array[i] / 100;
-    result[numHundreds] = result[numHundreds] + 1;
-
+    atomicAdd((result+numHundreds), 1);
   }
 }
 
