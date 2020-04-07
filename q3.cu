@@ -111,13 +111,25 @@ void odds(int* result, int* array, int n) {
 __global__ 
 void prescan(int* result, int* odds, int n) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
-  for (int d = 1; d < n; d *= 2) {
-    if (index+1 > d && index < n) {
+  extern __shared__ int local_scan[];
+  int from = blockIdx.x * blockDim.x;
+  int to = blockIdx.x * blockDim.x + blockDim.x; 
+   
+  for (int d = 1; d < blockDim.x; d *= 2) {
+    if (index + 1 - from > d) {
       odds[index] += odds[index-d];
     }
     __syncthreads();
   }
   result[index] = odds[index];
+}
+
+__global__
+void map(int* result, int from) {
+  int index = from + threadIdx.x;
+  int to_map = result[from-1];
+  result[index] += to_map;
+  return;
 }
 
 __global__
@@ -149,24 +161,30 @@ void copyOdds(int* array, int n) {
   int* ones;  // stores whether each element in array is odd or not (denoted 1 or 0)
   int* prefix;  // stores prefix sum of each element
   int* result;  // stores final result, sizeof prefix[n-1]
+  int local_array_bytes = sizeof(int)*threads;
 
   cudaMallocManaged(&ones, sizeof(int) * n);
   cudaMallocManaged(&prefix, sizeof(int) * n);
 
   odds<<<blocks, threads>>>(ones, array, n);
+  printf("ones[999999]: %d\n", ones[999999]);
 
   cudaDeviceSynchronize();
 
-  prescan<<<blocks, threads>>>(prefix, ones, n);
+  prescan<<<blocks, threads, local_array_bytes>>>(prefix, ones, n); 
+
 
   cudaDeviceSynchronize();
 
-  int maxOdds = prefix[n-1];
-  printf("max number of odds: %d\n", prefix[n-1]);
-
-  for(int i = 0; i < threads; i++) {
-    printf("is index %d odds? %d\n", i, prefix[i]);
+  for(int i = threads; i < n; i+=threads) {
+    map<<<1, threads>>>(prefix, i); //map last value of previous group of 1024 onto next group of 1024
+    cudaDeviceSynchronize();
   }
+
+  printf("prescan[999998]: %d, prescan[999999]: %d\n", prefix[999998], prefix[999999]);
+
+  int maxOdds = prefix[n] + 1;
+  printf("max number of odds: %d\n", prefix[n]);
 
   cudaMallocManaged(&result, sizeof(int) * maxOdds);
 
@@ -174,9 +192,9 @@ void copyOdds(int* array, int n) {
 
   cudaDeviceSynchronize();
 
-  // for(int i = 1; i < threads; i++) {
-  //   printf("index: %d result: %d\n", i, result[i]);
-  // }
+   for(int i = maxOdds - 10; i < maxOdds; i++) {
+     printf("index: %d result: %d\n", i, result[i]);
+   }
 
 }
 
