@@ -3,8 +3,8 @@
 #include <string.h>
 #include <limits.h>
 
-#define NUM_THREADS 32
-#define NUM_BLOCKS 2
+#define NUM_THREADS 512
+#define NUM_BLOCKS 1
 #define ZERO_BANK_CONFLICTS 1
 #define NUM_BANKS 16
 #define LOG_NUM_BANKS 4
@@ -53,6 +53,7 @@ int* fileToArray(char file1[], int* n){
 // }
 
 __global__ void prescan(int* result, int* array, int n) {
+  n = NUM_THREADS; //we cant do more than this yet
   extern __shared__ int counts[];
   int thid = threadIdx.x;
   int offset = 1;
@@ -108,7 +109,7 @@ void copyOdds(int* array, int n) {
 
   prescan<<<NUM_BLOCKS, NUM_THREADS>>>(result, array, n);
   cudaDeviceSynchronize();
-  for(int i = 0; i < n; i++) {
+  for(int i = 0; i < NUM_THREADS; i++) {
     printf("number of odds before index %d is: %d\n", i, result[i]);
   }
 
