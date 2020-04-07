@@ -5,6 +5,15 @@
 
 #define NUM_THREADS 32
 #define NUM_BLOCKS 2
+#define ZERO_BANK_CONFLICTS 1
+#define NUM_BANKS 16
+#define LOG_NUM_BANKS 4
+#ifdef ZERO_BANK_CONFLICTS
+#define CONFLICT_FREE_OFFSET(n) \
+ ((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
+#else
+#define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_NUM_BANKS)
+#endif
 
 int* fileToArray(char file1[], int* n){
   FILE* fptr = fopen(file1, "r");
@@ -22,25 +31,73 @@ int* fileToArray(char file1[], int* n){
  return array;
 }
 
-__global__
-void countOdds(int* array, int* result, int n) {
+// __global__
+// void countOdds(int* array, int* result, int n) {
   
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-  for (int i = index; i < n; i += stride) {
-    atomicAdd(result, 1);
+//   int index = blockIdx.x * blockDim.x + threadIdx.x;
+//   int stride = blockDim.x * gridDim.x;
+//   for (int i = index; i < n; i += stride) {
+//     atomicAdd(result, 1);
+//   }
+// }
+
+// __global__
+// void odds(int* array, int* result, int n){
+//   int index = blockIdx.x * blockDim.x + threadIdx.x;
+//   int stride = blockDim.x * gridDim.x;
+//   for (int i = index; i < n; i += stride) {
+//     atomicAdd(result, 1);
+//   }
+
+
+// }
+
+__global__ void prescan(int* result, int* array, int n) {
+  extern __shared__ int counts[];
+  int thid = threadIdx.x;
+  int offset = 1;
+
+  int ai = thid;
+  int bi = thid + (n/2);
+  int bankOffsetA = CONFLICT_FREE_OFFSET(ai);
+  int bankOffsetB = CONFLICT_FREE_OFFSET(ai);
+
+  counts[ai + bankOffsetA] = ((array[ai] % 2) == 0) ? 0 : 1;
+  counts[bi + bankOffsetB] = ((array[bi] % 2) == 0) ? 0 : 1;
+
+
+  for (int d = n>>1; d > 0; d >>= 1) {
+    __syncthreads();
+    if (thid < d) {
+      int ai = offset*(2*thid+1)-1;
+      int bi = offset*(2*thid+2)-1;
+      ai += CONFLICT_FREE_OFFSET(ai);
+      bi += CONFLICT_FREE_OFFSET(bi); 
+      counts[bi] += counts[ai]; 
+    }
+    offset *= 2;
   }
-}
-
-__global__
-void odds(int* array, int* result, int n){
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-  for (int i = index; i < n; i += stride) {
-    atomicAdd(result, 1);
+  
+  if (thid == 0) {
+    counts[n - 1 + CONFLICT_FREE_OFFSET(n - 1)] = 0;
   }
 
-
+  for (int d = 1; d < n; d *= 2) {
+    offset >>= 1;
+    __syncthreads();
+    if (thid < d) {
+      int ai = offset*(2*thid+1)-1;
+      int bi = offset*(2*thid+2)-1;
+      ai += CONFLICT_FREE_OFFSET(ai);
+      bi += CONFLICT_FREE_OFFSET(bi); 
+      int t = counts[ai];
+      counts[ai] = counts[bi];
+      counts[bi] += t;
+    }
+  }
+  __syncthreads();
+  result[ai] = counts[ai + bankOffsetA];
+  result[bi] = counts[bi + bankOffsetB]; 
 }
 
 void copyOdds(int* array, int n) {
@@ -49,11 +106,11 @@ void copyOdds(int* array, int n) {
   cudaMallocManaged(&result, sizeof(int));
 
 
-  countOdds<<<NUM_BLOCKS, NUM_THREADS>>>(array, result, n);
+  prescan<<<NUM_BLOCKS, NUM_THREADS>>>(result, array, n);
   cudaDeviceSynchronize();
-
-
-
+  for(int i = 0; i < n; i++) {
+    printf("number of odds before index %d is: %d\n", i, result[i]);
+  }
 
 }
 
