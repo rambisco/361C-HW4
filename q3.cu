@@ -104,7 +104,7 @@ __global__ void prescan(int* result, int* array, int n) {
 void copyOdds(int* array, int n) {
 
   int* result;
-  cudaMallocManaged(&result, sizeof(int));
+  cudaMallocManaged(&result, sizeof(int)*n);
 
 
   prescan<<<NUM_BLOCKS, NUM_THREADS>>>(result, array, n);
