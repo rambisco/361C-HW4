@@ -6,6 +6,7 @@
 #define NUM_THREADS 512
 #define NUM_BLOCKS 1
 #define ZERO_BANK_CONFLICTS 1
+#define OUTPUT_FILE_NAME "q3.txt"
 #define NUM_BANKS 16
 #define LOG_NUM_BANKS 4
 #ifdef ZERO_BANK_CONFLICTS
@@ -117,6 +118,13 @@ void copyOdds(int* array, int n) {
      printf("index: %d result: %d\n", i, result[i]);
    }
 
+  FILE *output = fopen(OUTPUT_FILE_NAME, "w");
+  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME);
+  fprintf(output, "%d", result[0]);
+  for(int i = 0; i < maxOdds ; i++) {
+    fprintf(output, ",%d", result[i]);
+  }
+  fclose(output);
 }
 
 int main(int argc, char* argv[]){
