@@ -25,17 +25,18 @@ int* fileToArray(char file1[], int* n){
 
 // we want to keep track of how many elements have a 0 in the current bit that is to be masked.
 __global__ 
-void sort(int* result, int* array, int mask, int n) {
+void maskArray(int* result2, int* result, int* array, int mask, int n) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < n) {
 
     // this is the relative index
-    result[index] = !(array[index] & mask);
+    result[index] = array[index] & mask;
+    result2[index] = !(array[index] & mask);
   } 
 }
 
 __global__ 
-void prescan(int* result, int* indices, int n) {
+void prescan(int* indices, int n) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   //extern __shared__ int local_scan[];
   int from = blockIdx.x * blockDim.x;
@@ -47,7 +48,6 @@ void prescan(int* result, int* indices, int n) {
     }
     __syncthreads();
   }
-  result[index] = indices[index];
 }
 
 __global__
@@ -59,11 +59,15 @@ void map(int* result, int from) {
 }
 
 __global__
-void copy(int* result, int* indices, int* array, int n) {
+void copy(int* result, int* array, int* ones, int* zeroes, int n, int pivot, int mask) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < n) {
-      if (array[index] % 2 == 1) {
-        int idx = indices[index];
+      if (array[index] & mask) {
+        int idx = ones[index];
+        result[idx + pivot] = array[index];
+      }
+      else {
+        int idx = zeroes[index];
         result[idx] = array[index];
       }
   }
@@ -73,22 +77,38 @@ void radixSort(int* array, int n) {
     int threads = 1024;
     int blocks = (n + (threads-1)) / threads;
     
-    int* indices;  // stores whether each element in array is odd or not (denoted 1 or 0)
-    int* prefix;  // stores prefix sum of each element
+    // stores whether each element in array is odd or not (denoted 1 or 0)
+    int* ones;
+    int* zeroes;
+    int* result_copy;  // stores prefix sum of each element
     int* result;  // stores final result, sizeof prefix[n-1]
     int local_array_bytes = sizeof(int)*threads;
-  
-    cudaMallocManaged(&indices, sizeof(int) * n);
-    cudaMallocManaged(&prefix, sizeof(int) * n);
-    cudaMallocManaged(&result, sizeof(int) * n);
 
-    for (int i = 1; i <= 1024; i <<= 2) {
-        sort<<<blocks, threads>>>(indices, array, i, n);
+    cudaMallocManaged(&result_copy, sizeof(int) * n);
+    cudaMallocManaged(&result, sizeof(int) * n);
+    cudaMallocManaged(&ones, sizeof(int) * n);
+    cudaMallocManaged(&zeroes, sizeof(int) * n);
+
+    for (int i = 1; i <= 1024; i <<= 1) {
+        maskArray<<<blocks, threads>>>(zeroes, ones, array, i, n);
 
         cudaDeviceSynchronize();
-        printf("indices[999999]: %d\n", indices[999999]);
 
-        prescan<<<blocks, threads, local_array_bytes>>>(prefix, indices, n); 
+        prescan<<<blocks, threads, local_array_bytes>>>(zeroes, n); 
+
+        for(int i = threads; i < n; i+=threads) {
+        map<<<1, threads>>>(zeroes, i); //map last value of previous group of 1024 onto next group of 1024
+        cudaDeviceSynchronize();
+        }
+
+        prescan<<<blocks, threads, local_array_bytes>>>(ones, n); 
+
+        for(int i = threads; i < n; i+=threads) {
+        map<<<1, threads>>>(ones, i); //map last value of previous group of 1024 onto next group of 1024
+        cudaDeviceSynchronize();
+        }
+
+        int pivot = zeroes[n-1];
 
         // so far we've only calculated the positions of elements with 0 in the bit of interest
         // we need to use new index of the last element with a 0 in the bit of interest as an offset 
@@ -96,25 +116,11 @@ void radixSort(int* array, int n) {
         // also I think we need to copy results -> input array at the end of each iteration for each bit of interest
   
         cudaDeviceSynchronize();
-  
-        for(int i = threads; i < n; i+=threads) {
-        map<<<1, threads>>>(prefix, i); //map last value of previous group of 1024 onto next group of 1024
-        cudaDeviceSynchronize();
+        copy<<<blocks, threads>>>(result, array, ones, zeroes, n, pivot, mask);
+        for(int i = 0; i < 10; i++) {
+          printf("result[%d]: %d\n", i, result[i]);
         }
     }
-  
-    printf("prescan[999998]: %d, prescan[999999]: %d\n", prefix[999998], prefix[999999]);
-  
-    int maxOdds = prefix[n] + 1;
-    printf("max number of odds: %d\n", prefix[n]);
-  
-    copy<<<blocks, threads>>>(result, prefix, array, n);
-  
-    cudaDeviceSynchronize();
-  
-     for(int i = maxOdds - 10; i < maxOdds; i++) {
-       printf("index: %d result: %d\n", i, result[i]);
-     }
   
   }
 
