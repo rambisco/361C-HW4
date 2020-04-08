@@ -4,8 +4,8 @@
 #include <limits.h>
 
 
-#define OUTPUT_FILE_NAME "q1.txt"
-#define OUTPUT_FILE_NAME_MIN "q1_min.txt"
+#define OUTPUT_FILE_NAME_B "q1b.txt"
+#define OUTPUT_FILE_NAME_MIN "q1a.txt"
 #define NUM_THREADS_A 32
 #define NUM_BLOCKS_A 2
 #define NUM_THREADS_B 32
@@ -73,8 +73,8 @@ void computeLastDigit(int* array, int n) {
   for (int i = 0; i < 10; i++) {
     printf("array[%d]: %d, result[%d]: %d\n", i, array[i], i, result[i]);
   }
-  FILE *output = fopen(OUTPUT_FILE_NAME, "w");
-  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME);
+  FILE *output = fopen(OUTPUT_FILE_NAME_B, "w");
+  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME_B);
   fprintf(output, "%d", result[0]);
   for(int i = 0; i < n ; i++) {
     fprintf(output, ",%d", result[i]);

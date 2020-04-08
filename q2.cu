@@ -3,7 +3,9 @@
 #include <string.h>
 #include <limits.h>
 
-#define OUTPUT_FILE_NAME_B "q2_b.txt"
+#define OUTPUT_FILE_NAME_A "q2a.txt"
+#define OUTPUT_FILE_NAME_B "q2b.txt"
+#define OUTPUT_FILE_NAME_C "q2c.txt"
 #define NUM_THREADS_A 32
 #define NUM_BLOCKS_A 2
 #define NUM_THREADS_B 32
@@ -79,11 +81,23 @@ void bucket(int* array, int* result, int n) {
   }
 }
 
+__global__ 
+void prescan(int* array, int n) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  extern __shared__ int local_scan[];
+   
+  for (int d = 1; d < 10; d *= 2) {
+    if (index + 1 > d && index < 10) {
+      array[index] += array[index-d];
+    }
+    __syncthreads();
+  }
+}
+
 void computeBucket(int* array, int n) {
 
   int* result;
   cudaMallocManaged(&result, sizeof(int)*(10));
-
   for (int i = 0; i < 10; i++) {
     result[i] = 0;
   }
@@ -91,6 +105,25 @@ void computeBucket(int* array, int n) {
   bucket<<<NUM_BLOCKS_B, NUM_THREADS_B>>>(array, result, n);
 
   cudaDeviceSynchronize();
+
+  FILE *output = fopen(OUTPUT_FILE_NAME_A, "w");
+  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME_A);
+  fprintf(output, "%d", result[0]);
+  for(int i = 0; i < 10 ; i++) {
+    fprintf(output, ",%d", result[i]);
+  }
+  fclose(output);  
+
+  prescan<<<1, 10>>>(result, 10); 
+
+  
+  output = fopen(OUTPUT_FILE_NAME_C, "w");
+  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME_C);
+  fprintf(output, "%d", result[0]);
+  for(int i = 0; i < 10 ; i++) {
+    fprintf(output, ",%d", result[i]);
+  }
+  fclose(output);  
 }
 
 int main(int argc, char* argv[]){

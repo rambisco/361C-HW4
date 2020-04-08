@@ -96,15 +96,15 @@ void radixSort(int* array, int n) {
 
         prescan<<<blocks, threads, local_array_bytes>>>(zeroes, n); 
 
-        for(int i = threads; i < n; i+=threads) {
-        map<<<1, threads>>>(zeroes, i); //map last value of previous group of 1024 onto next group of 1024
+        for(int j = threads; j < n; j+=threads) {
+        map<<<1, threads>>>(zeroes, j); //map last value of previous group of 1024 onto next group of 1024
         cudaDeviceSynchronize();
         }
 
         prescan<<<blocks, threads, local_array_bytes>>>(ones, n); 
 
-        for(int i = threads; i < n; i+=threads) {
-        map<<<1, threads>>>(ones, i); //map last value of previous group of 1024 onto next group of 1024
+        for(int j = threads; j < n; j+=threads) {
+        map<<<1, threads>>>(ones, j); //map last value of previous group of 1024 onto next group of 1024
         cudaDeviceSynchronize();
         }
 
@@ -116,9 +116,9 @@ void radixSort(int* array, int n) {
         // also I think we need to copy results -> input array at the end of each iteration for each bit of interest
   
         cudaDeviceSynchronize();
-        copy<<<blocks, threads>>>(result, array, ones, zeroes, n, pivot, mask);
-        for(int i = 0; i < 10; i++) {
-          printf("result[%d]: %d\n", i, result[i]);
+        copy<<<blocks, threads>>>(result, array, ones, zeroes, n, pivot, i);
+        for(int j = 0; j < 10; j++) {
+          printf("result[%d]: %d\n", j, result[j]);
         }
     }
   
