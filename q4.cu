@@ -30,8 +30,8 @@ void maskArray(int* result2, int* result, int* array, int mask, int n) {
   if (index < n) {
 
     // this is the relative index
-    result[index] = array[index] & mask;
-    result2[index] = !(array[index] & mask);
+    result[index] = (array[index] & mask) == mask ? 1 : 0;
+    result2[index] = (array[index] & mask) == mask ? 0 : 1; 
   } 
 }
 
@@ -43,7 +43,7 @@ void prescan(int* indices, int n) {
   int to = blockIdx.x * blockDim.x + blockDim.x; 
    
   for (int d = 1; d < blockDim.x; d *= 2) {
-    if (index + 1 - from > d) {
+    if (index + 1 - from > d && index < n) {
       indices[index] += indices[index-d];
     }
     __syncthreads();
@@ -62,7 +62,7 @@ __global__
 void copy(int* result, int* array, int* ones, int* zeroes, int n, int pivot, int mask) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < n) {
-      if (array[index] & mask) {
+      if (array[index] & mask != 0) {
         int idx = ones[index];
         result[idx + pivot] = array[index];
       }
@@ -89,24 +89,52 @@ void radixSort(int* array, int n) {
     cudaMallocManaged(&ones, sizeof(int) * n);
     cudaMallocManaged(&zeroes, sizeof(int) * n);
 
-    for (int i = 1; i <= 1024; i <<= 1) {
+    for (unsigned int i = 1; i <= 1024; i <<= 1) {
+
+        printf("\n\nMask: %x\n\n", i); 
+
         maskArray<<<blocks, threads>>>(zeroes, ones, array, i, n);
 
         cudaDeviceSynchronize();
 
+        for(int j = 0; j < 10; j++){
+          printf("zeroes[%d]: %d - ", n - j, zeroes[n - j]);  
+          printf("ones[%d]: %d\n", n - j, ones[n - j]);
+        }
+
+        printf("zeroes[%d]: %d", 999999, zeroes[999999]);
+        printf("ones[%d]: %d", 999999, ones[999999]);
+
         prescan<<<blocks, threads, local_array_bytes>>>(zeroes, n); 
+
+        cudaDeviceSynchronize();
 
         for(int j = threads; j < n; j+=threads) {
         map<<<1, threads>>>(zeroes, j); //map last value of previous group of 1024 onto next group of 1024
         cudaDeviceSynchronize();
         }
 
+        for(int j = 0; j < 10; j++){
+          printf("zeroes[%d]: %d - ", j, zeroes[j]);  
+          printf("zeroes[%d]: %d\n", threads - 2 + j, zeroes[threads - 2 + j]);
+        }
+
         prescan<<<blocks, threads, local_array_bytes>>>(ones, n); 
+
+        cudaDeviceSynchronize();
 
         for(int j = threads; j < n; j+=threads) {
         map<<<1, threads>>>(ones, j); //map last value of previous group of 1024 onto next group of 1024
         cudaDeviceSynchronize();
         }
+
+        for(int j = 0; j < 10; j++){
+          printf("ones[%d]: %d - ", j, ones[j]);  
+          printf("ones[%d]: %d\n", threads - 2 + j, ones[threads - 2 + j]);
+        }
+
+        printf("zeroes[%d]: %d", 999999, zeroes[999999]);
+        printf("ones[%d]: %d", 999999, ones[999999]);
 
         int pivot = zeroes[n-1];
 
@@ -116,7 +144,11 @@ void radixSort(int* array, int n) {
         // also I think we need to copy results -> input array at the end of each iteration for each bit of interest
   
         cudaDeviceSynchronize();
+
         copy<<<blocks, threads>>>(result, array, ones, zeroes, n, pivot, i);
+
+        cudaDeviceSynchronize();
+
         for(int j = 0; j < 10; j++) {
           printf("result[%d]: %d\n", j, result[j]);
         }
