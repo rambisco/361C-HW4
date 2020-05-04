@@ -4,23 +4,61 @@
 #include <limits.h>
 
 #define NUM_THREADS 512
+#define OUTPUT_FILE_NAME "q3.txt"
 #define NUM_BLOCKS 1
 
+// int* fileToArray(char file1[], int* n){
+//     FILE* fptr = fopen(file1, "r");
+//     FILE* fptr_cpy = fptr;
+//     char* str = (char*) malloc(sizeof(char)*2048);
+//     int token;
+//     int count = 0;
+//     while (fscanf(fptr, "%d ,", &token) != EOF) {
+//       count++;
+//     }
+//     count++;
+//     *n = count;
+//     //fscanf(fptr, "%d,", n);
+//     int* array;
+//     cudaMallocManaged(&array, sizeof(int)*(*n));
+//     int i = 0 
+//     while (fscanf(fptr, "%d ,", &token) != EOF) {
+//       array[i] = token;
+//       i++;
+//     }
+//     i++;
+//     fscanf(fptr, "%d", &token);
+//     array[i] = token;
+//     // for(int i = 0; i < *n; i++){
+//     //     fscanf(fptr, "%d,", &token);
+//     //     array[i] = token;
+//     // }
+
+//     fclose(fptr);
+//     return array;
+// }
+
 int* fileToArray(char file1[], int* n){
-    FILE* fptr = fopen(file1, "r");
-    char* str = (char*) malloc(sizeof(char)*2048);
-    int token;
-    fscanf(fptr, "%d,", n);
-    int* array;
-    cudaMallocManaged(&array, sizeof(int)*(*n)); 
+  FILE* fptr = fopen(file1, "r");
+  // char* str = (char*) malloc(sizeof(char)*2048);
+  int token;
+  int count = 0;
+  while (fscanf(fptr, "%d, ", &token) != EOF) {
+    //printf("%dth token: %d\n", count, token);
+    count++;
+  }
+  *n = count;
+  //printf("total number of elements: %d\n", *n);
+  int* array;
+  cudaMallocManaged(&array, sizeof(int)*(*n));
+  rewind(fptr);
+  for(int i = 0; i < *n; i++){
+      fscanf(fptr, "%d, ", &token);
+      array[i] = token;
+  }
 
-    for(int i = 0; i < *n; i++){
-        fscanf(fptr, "%d,", &token);
-        array[i] = token;
-    }
-
-    fclose(fptr);
-    return array;
+  fclose(fptr);
+  return array;
 }
 
 // we want to keep track of how many elements have a 0 in the current bit that is to be masked.
@@ -153,13 +191,26 @@ void radixSort(int* array, int n) {
           printf("result[%d]: %d\n", j, result[j]);
         }
     }
-  
+    FILE *output = fopen(OUTPUT_FILE_NAME, "w");
+    if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME);
+    fprintf(output, "%d", result[0]);
+    for(int i = 1; i < n ; i++) {
+      fprintf(output, ", %d", result[i]);
+    }
+    fclose(output);
   }
 
 
 int main(int argc, char* argv[]){
     int n;
     int* array = fileToArray("inp.txt", &n);
+    printf("Number of elements in array: %d\n", n);
+    for (int i = 0; i < n; i++) {
+      printf("%d, ", array[i]);
+    }
     radixSort(array, n);
+
+    
+
     cudaFree(array);
   }

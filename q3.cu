@@ -16,20 +16,43 @@
 #define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_NUM_BANKS)
 #endif
 
+// int* fileToArray(char file1[], int* n){
+//   FILE* fptr = fopen(file1, "r");
+//   char* str = (char*) malloc(sizeof(char)*2048);
+//   int token;
+//   fscanf(fptr, "%d,", n);
+//   int* array;
+//   //int* array = malloc(sizeof(int)*(*n));
+//   cudaMallocManaged(&array, sizeof(int)*(*n)); 
+//   for(int i = 0; i < *n; i++){
+//     fscanf(fptr, "%d,", &token);
+//     array[i] = token;
+//   }
+//  fclose(fptr);
+//  return array;
+// }
+
 int* fileToArray(char file1[], int* n){
   FILE* fptr = fopen(file1, "r");
-  char* str = (char*) malloc(sizeof(char)*2048);
+  //char* str = (char*) malloc(sizeof(char)*2048);
   int token;
-  fscanf(fptr, "%d,", n);
-  int* array;
-  //int* array = malloc(sizeof(int)*(*n));
-  cudaMallocManaged(&array, sizeof(int)*(*n)); 
-  for(int i = 0; i < *n; i++){
-    fscanf(fptr, "%d,", &token);
-    array[i] = token;
+  int count = 0;
+  while (fscanf(fptr, "%d, ", &token) != EOF) {
+    //("%dth token: %d\n", count, token);
+    count++;
   }
- fclose(fptr);
- return array;
+  *n = count;
+  //printf("total number of elements: %d\n", *n);
+  int* array;
+  cudaMallocManaged(&array, sizeof(int)*(*n));
+  rewind(fptr);
+  for(int i = 0; i < *n; i++){
+      fscanf(fptr, "%d, ", &token);
+      array[i] = token;
+  }
+
+  fclose(fptr);
+  return array;
 }
 
 __global__ 
@@ -118,13 +141,13 @@ void copyOdds(int* array, int n) {
      printf("index: %d result: %d\n", i, result[i]);
    }
 
-  FILE *output = fopen(OUTPUT_FILE_NAME, "w");
-  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME);
-  fprintf(output, "%d", result[0]);
-  for(int i = 0; i < maxOdds ; i++) {
-    fprintf(output, ",%d", result[i]);
-  }
-  fclose(output);
+  // FILE *output = fopen(OUTPUT_FILE_NAME, "w");
+  // if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME);
+  // fprintf(output, "%d", result[0]);
+  // for(int i = 0; i < maxOdds ; i++) {
+  //   fprintf(output, ",%d", result[i]);
+  // }
+  // fclose(output);
 }
 
 int main(int argc, char* argv[]){
