@@ -6,6 +6,7 @@
 #define NUM_THREADS 512
 #define NUM_BLOCKS 1
 #define ZERO_BANK_CONFLICTS 1
+#define OUTPUT_FILE_NAME "q3.txt"
 #define NUM_BANKS 16
 #define LOG_NUM_BANKS 4
 #ifdef ZERO_BANK_CONFLICTS
@@ -31,75 +32,6 @@ int* fileToArray(char file1[], int* n){
  return array;
 }
 
-// __global__
-// void countodds(int* array, int* result, int n) {
-  
-//   int index = blockIdx.x * blockDim.x + threadIdx.x;
-//   int stride = blockDim.x * gridDim.x;
-//   for (int i = index; i < n; i += stride) {
-//     atomicAdd(result, 1);
-//   }
-// }
-
-// __global__
-// void odds(int* array, int* result, int n){
-//   int index = blockIdx.x * blockDim.x + threadIdx.x;
-//   int stride = blockDim.x * gridDim.x;
-//   for (int i = index; i < n; i += stride) {
-//     atomicAdd(result, 1);
-//   }
-
-
-// }
-
-// __global__ void prescan(int* result, int* array, int n) {
-  //n = NUM_THREADS; //we cant do more than this yet
-  // extern __shared__ int counts[];
-  // int thid = blockIdx.x * blockDim.x + threadIdx.x;
-  //int thid = threadIdx.x;
-  // int offset = 1;
-
-  // int ai = thid;
-  // int bi = thid + (n/2);
-  // int bankOffsetA = CONFLICT_FREE_OFFSET(ai);
-  // int bankOffsetB = CONFLICT_FREE_OFFSET(ai);
-
-  // counts[ai + bankOffsetA] = ((array[ai] % 2) == 0) ? 0 : 1;
-  // counts[bi + bankOffsetB] = ((array[bi] % 2) == 0) ? 0 : 1;
-
-//   for (int d = n>>1; d > 0; d >>= 1) {
-//     __syncthreads();
-//     if (thid < d) {
-//       int ai = offset*(2*thid+1)-1;
-//       int bi = offset*(2*thid+2)-1;
-//       ai += CONFLICT_FREE_OFFSET(ai);
-//       bi += CONFLICT_FREE_OFFSET(bi); 
-//       counts[bi] += counts[ai]; 
-//     }
-//     offset *= 2;
-//   }
-  
-//   if (thid == 0) {
-//     counts[n - 1 + CONFLICT_FREE_OFFSET(n - 1)] = 0;
-//   }
-
-//   for (int d = 1; d < n; d *= 2) {
-//     offset >>= 1;
-//     __syncthreads();
-//     if (thid < d) {
-//       int ai = offset*(2*thid+1)-1;
-//       int bi = offset*(2*thid+2)-1;
-//       ai += CONFLICT_FREE_OFFSET(ai);
-//       bi += CONFLICT_FREE_OFFSET(bi); 
-//       int t = counts[ai];
-//       counts[ai] = counts[bi];
-//       counts[bi] += t;
-//     }
-//   }
-//   __syncthreads();
-//   result[ai] = counts[ai + bankOffsetA];
-//   result[bi] = counts[bi + bankOffsetB]; 
-// }
 __global__ 
 void odds(int* result, int* array, int n) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -135,13 +67,6 @@ void map(int* result, int from) {
 __global__
 void copy(int* result, int* odds, int* array, int n) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
-  // int stride = blockDim.x * gridDim.x;
-  // for (int i = index; i < n; i += stride) {
-  //   if (array[i] % 2 == 1) {
-  //     int idx = odds[i];
-  //     result[idx] = array[i];
-  //   }
-  // }
   if (index < n) {
       if (array[index] % 2 == 1) {
         int idx = odds[index];
@@ -149,9 +74,6 @@ void copy(int* result, int* odds, int* array, int n) {
       }
   }
 }
- 
-
-//   printf("max number of odds: %d\n", odds[n-1]);
 
 void copyOdds(int* array, int n) {
   int threads = 1024;
@@ -196,6 +118,13 @@ void copyOdds(int* array, int n) {
      printf("index: %d result: %d\n", i, result[i]);
    }
 
+  FILE *output = fopen(OUTPUT_FILE_NAME, "w");
+  if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME);
+  fprintf(output, "%d", result[0]);
+  for(int i = 0; i < maxOdds ; i++) {
+    fprintf(output, ",%d", result[i]);
+  }
+  fclose(output);
 }
 
 int main(int argc, char* argv[]){
