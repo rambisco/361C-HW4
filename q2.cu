@@ -11,20 +11,43 @@
 #define NUM_THREADS_B 32
 #define NUM_BLOCKS_B 2
 
+// int* fileToArray(char file1[], int* n){
+//   FILE* fptr = fopen(file1, "r");
+//   char* str = (char*) malloc(sizeof(char)*2048);
+//   int token;
+//   fscanf(fptr, "%d,", n);
+//   int* array;
+//   //int* array = malloc(sizeof(int)*(*n));
+//   cudaMallocManaged(&array, sizeof(int)*(*n)); 
+//   for(int i = 0; i < *n; i++){
+//     fscanf(fptr, "%d,", &token);
+//     array[i] = token;
+//   }
+//  fclose(fptr);
+//  return array;
+// }
+
 int* fileToArray(char file1[], int* n){
   FILE* fptr = fopen(file1, "r");
   char* str = (char*) malloc(sizeof(char)*2048);
   int token;
-  fscanf(fptr, "%d,", n);
-  int* array;
-  //int* array = malloc(sizeof(int)*(*n));
-  cudaMallocManaged(&array, sizeof(int)*(*n)); 
-  for(int i = 0; i < *n; i++){
-    fscanf(fptr, "%d,", &token);
-    array[i] = token;
+  int count = 0;
+  while (fscanf(fptr, "%d, ", &token) != EOF) {
+    //printf("%dth token: %d\n", count, token);
+    count++;
   }
- fclose(fptr);
- return array;
+  *n = count;
+  //printf("total number of elements: %d\n", *n);
+  int* array;
+  cudaMallocManaged(&array, sizeof(int)*(*n));
+  rewind(fptr);
+  for(int i = 0; i < *n; i++){
+      fscanf(fptr, "%d, ", &token);
+      array[i] = token;
+  }
+
+  fclose(fptr);
+  return array;
 }
 
 __global__
@@ -63,8 +86,8 @@ void computeSharedBucket(int* array, int n) {
   FILE *output = fopen(OUTPUT_FILE_NAME_B, "w");
   if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME_B);
   fprintf(output, "%d", result[0]);
-  for(int i = 0; i < 10 ; i++) {
-    fprintf(output, ",%d", result[i]);
+  for(int i = 1; i < 10 ; i++) {
+    fprintf(output, ", %d", result[i]);
   }
   fclose(output);  
 }
@@ -109,8 +132,8 @@ void computeBucket(int* array, int n) {
   FILE *output = fopen(OUTPUT_FILE_NAME_A, "w");
   if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME_A);
   fprintf(output, "%d", result[0]);
-  for(int i = 0; i < 10 ; i++) {
-    fprintf(output, ",%d", result[i]);
+  for(int i = 1; i < 10 ; i++) {
+    fprintf(output, ", %d", result[i]);
   }
   fclose(output);  
 
@@ -120,8 +143,8 @@ void computeBucket(int* array, int n) {
   output = fopen(OUTPUT_FILE_NAME_C, "w");
   if(output == NULL) printf("failed to open file %s\n", OUTPUT_FILE_NAME_C);
   fprintf(output, "%d", result[0]);
-  for(int i = 0; i < 10 ; i++) {
-    fprintf(output, ",%d", result[i]);
+  for(int i = 1; i < 10 ; i++) {
+    fprintf(output, ", %d", result[i]);
   }
   fclose(output);  
 }
